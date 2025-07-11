@@ -11,6 +11,3 @@ class MongoDB:
             self.db = self.client.get_database(setting.MONGO_INITDB_DATABASE)
         except Exception as  e:
             raise HTTPException(status_code=500,detail=f"Failed to Establish DB Connection: {e}")
-        
-    async def list_collection_names(self):
-        return await self.db.list_collection_names()

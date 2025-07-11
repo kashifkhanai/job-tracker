@@ -1,12 +1,15 @@
 from fastapi import FastAPI
-from db import MongoDB
-from settings import get_settings
+from api.router import api_router
+from settings import APISettings
 
-app = FastAPI()
+def get_app() -> FastAPI:
+    fast_app = FastAPI(title=APISettings().APP_NAME, version=APISettings().APP_VERSION, debug=APISettings().IS_DEBUG)
+    fast_app.include_router(api_router, prefix=APISettings().API_PREFIX)
 
-@app.get("/")
-async def read_root():
-    settings = get_settings()
-    db = MongoDB(settings)
-    collections = await db.list_collection_names()
-    return {"message": "Connected to MongoDB!", "collections": collections}
+    return fast_app
+
+
+app = get_app()
+
+
+
