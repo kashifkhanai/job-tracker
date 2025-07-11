@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator,model_validator
 from typing import Annotated, Optional
 from enum import Enum
 import re
@@ -49,6 +49,12 @@ class UserRegister(BaseModel):
 
 # --- User Login Schema ---
 class UserLogin(BaseModel):
-    username: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
     password: str
+
+    @model_validator(mode="after")
+    def check_email_or_username(self) -> 'UserLogin':
+        if not self.email and not self.username:
+            raise ValueError("Either email or username must be provided")
+        return self
