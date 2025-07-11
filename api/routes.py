@@ -1,7 +1,7 @@
 from fastapi import APIRouter ,HTTPException,status,Depends
 from schemas.models import UserRegister,UserLogin
 from utils.db_getter import get_db
-from utils.utils import hash_password
+from utils.utils import hash_password,verify_password
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 router = APIRouter(prefix="/auth")
@@ -18,7 +18,7 @@ async def register_user(payload: UserRegister, db:AsyncIOMotorDatabase=Depends(g
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Username already exists. Please choose a different one."
             )
 
-    # ✅ Register new user
+    # Register new user
     hash_pwd=hash_password(payload.password)
     new_user={
         "firstname": payload.firstname,
@@ -32,3 +32,25 @@ async def register_user(payload: UserRegister, db:AsyncIOMotorDatabase=Depends(g
     result = await db["users"].insert_one(new_user)
     return {"message": "User registered successfully", "user_id": str(result.inserted_id)}
 
+@router.post("/login")
+async def login_user(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_db)):
+
+    if not payload.password:
+        raise HTTPException(status_code=400, detail="Password is required")
+    query = {}
+    if payload.email:
+        query["email"] = payload.email
+    elif payload.username:
+        query["username"] = payload.username
+
+    user = await db["users"].find_one(query)
+    if not user or not verify_password(payload.password, user["password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username/email or password"
+        )
+
+    return {
+        "message": "Login successful",
+        "user_id": str(user["_id"])
+    }
