@@ -12,6 +12,16 @@ class APISettings(BaseSettings):
         env_file = '.env'
         extra = "ignore"
 
+class JWTSettings(BaseSettings):   
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+
 class DatabaseSettings(BaseSettings):
     MONGO_URL: str
     MONGO_INITDB_DATABASE: str

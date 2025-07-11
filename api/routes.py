@@ -1,8 +1,15 @@
 from fastapi import APIRouter ,HTTPException,status,Depends
-from schemas.models import UserRegister,UserLogin
+from schemas.models import UserRegister,UserLogin,Token,TokenData
 from utils.db_getter import get_db
 from utils.utils import hash_password,verify_password
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from datetime import datetime,timezone,timedelta
+from settings import JWTSettings
+import jwt
+
+jwt_settings=JWTSettings()
+
+
 
 router = APIRouter(prefix="/auth")
 
@@ -32,25 +39,29 @@ async def register_user(payload: UserRegister, db:AsyncIOMotorDatabase=Depends(g
     result = await db["users"].insert_one(new_user)
     return {"message": "User registered successfully", "user_id": str(result.inserted_id)}
 
-@router.post("/login")
+@router.post("/login",response_model=Token)
 async def login_user(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_db)):
-
     if not payload.password:
         raise HTTPException(status_code=400, detail="Password is required")
+
     query = {}
     if payload.email:
         query["email"] = payload.email
     elif payload.username:
         query["username"] = payload.username
+    else:
+        raise HTTPException(status_code=400, detail="Email or username is required")
 
     user = await db["users"].find_one(query)
     if not user or not verify_password(payload.password, user["password"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username/email or password"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    return {
-        "message": "Login successful",
+    # Create JWT Token
+    expire = datetime.now(timezone.utc) + timedelta(minutes=jwt_settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload_data = {
+        "email": user["email"],
+        "exp": expire,
         "user_id": str(user["_id"])
     }
+    token = jwt.encode(payload=payload_data, key=jwt_settings.SECRET_KEY, algorithm=jwt_settings.ALGORITHM)
+    return Token(access_token=token, token_type="bearer")

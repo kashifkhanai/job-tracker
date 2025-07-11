@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator,model_validator
 from typing import Annotated, Optional
 from enum import Enum
+from datetime import datetime
 import re
 
 # --- Enums ---
@@ -58,3 +59,13 @@ class UserLogin(BaseModel):
         if not self.email and not self.username:
             raise ValueError("Either email or username must be provided")
         return self
+
+
+################## Token ############################
+class TokenData(BaseModel):
+    email: str
+    exp: datetime | None = None
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
