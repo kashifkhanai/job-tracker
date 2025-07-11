@@ -39,7 +39,7 @@ async def register_user(payload: UserRegister, db:AsyncIOMotorDatabase=Depends(g
     result = await db["users"].insert_one(new_user)
     return {"message": "User registered successfully", "user_id": str(result.inserted_id)}
 
-@router.post("/login",response_model=Token)
+@router.post("/login", response_model=Token)
 async def login_user(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_db)):
     if not payload.password:
         raise HTTPException(status_code=400, detail="Password is required")
@@ -52,16 +52,27 @@ async def login_user(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_
     else:
         raise HTTPException(status_code=400, detail="Email or username is required")
 
+    # Step 1: Check in users collection
     user = await db["users"].find_one(query)
+    is_admin = False
+
+    # Step 2: If not found, check in admins collection
+    if not user:
+        user = await db["admins"].find_one(query)
+        is_admin = True
+
+    # If not found in either or password doesn't match
     if not user or not verify_password(payload.password, user["password"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    # Create JWT Token
+    # ✅ Create JWT Token
     expire = datetime.now(timezone.utc) + timedelta(minutes=jwt_settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload_data = {
         "email": user["email"],
         "exp": expire,
-        "user_id": str(user["_id"])
+        "user_id": str(user["_id"]),
+        "is_admin": is_admin
     }
+
     token = jwt.encode(payload=payload_data, key=jwt_settings.SECRET_KEY, algorithm=jwt_settings.ALGORITHM)
     return Token(access_token=token, token_type="bearer")

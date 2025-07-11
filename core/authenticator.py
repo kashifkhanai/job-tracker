@@ -17,7 +17,7 @@ async def verify_jwt_token(token: Annotated[HTTPAuthorizationCredentials, Depend
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(jwt=token.credentials, key=JWT_Settings.JWT_SECRET, algorithms=[JWT_Settings.ALGORITHM])
+        payload = jwt.decode(jwt=token.credentials, key=JWT_Settings.SECRET_KEY, algorithms=[JWT_Settings.ALGORITHM])
         print(payload)
         token_data = payload.get("email")
         if token_data is None:
