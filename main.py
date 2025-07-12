@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.router import api_router
 from settings import APISettings
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 
 def get_app() -> FastAPI:
     fast_app = FastAPI(
@@ -29,4 +32,4 @@ def get_app() -> FastAPI:
 app = get_app()
 
 
-
+# app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
