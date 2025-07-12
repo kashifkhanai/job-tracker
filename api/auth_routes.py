@@ -1,5 +1,5 @@
 from fastapi import APIRouter ,HTTPException,status,Depends
-from schemas.models import UserRegister,UserLogin,Token,TokenData
+from schemas.models import User,UserLogin,Token,UserRegisterResponse
 from utils.db_getter import get_db
 from utils.utils import hash_password,verify_password
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -13,8 +13,8 @@ jwt_settings=JWTSettings()
 
 router = APIRouter(prefix="/auth")
 
-@router.post("/register")
-async def register_user(payload: UserRegister, db:AsyncIOMotorDatabase=Depends(get_db)):
+@router.post("/register",response_model=UserRegisterResponse)
+async def register_user(payload: User, db:AsyncIOMotorDatabase=Depends(get_db)):
     
     # 🔍 Check if user exists by email or username
     existing_user = await db["users"].find_one({"$or": [{"email": payload.email},{"username": payload.username}]})
@@ -32,7 +32,7 @@ async def register_user(payload: UserRegister, db:AsyncIOMotorDatabase=Depends(g
         "lastname" :payload.lastname,
         "username":payload.username,
         "phone": payload.phone,
-        "jobtitle":payload.jobtitle,
+        "role":payload.role if payload.role!="admin" else "job_seeker",
         "email":payload.email,
         "password":hash_pwd
     }
@@ -52,25 +52,23 @@ async def login_user(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_
     else:
         raise HTTPException(status_code=400, detail="Email or username is required")
 
-    # Step 1: Check in users collection
+    # Find user in DB
     user = await db["users"].find_one(query)
-    is_admin = False
 
-    # Step 2: If not found, check in admins collection
-    if not user:
-        user = await db["admins"].find_one(query)
-        is_admin = True
-
-    # If not found in either or password doesn't match
     if not user or not verify_password(payload.password, user["password"]):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password, please provide correct password")
 
-    # ✅ Create JWT Token
+    # Determine if user is admin
+    user_role = user.get("role", "job_seeker")
+    is_admin = user_role == "admin" and user.get("is_admin", False)
+
+    #Create JWT payload
     expire = datetime.now(timezone.utc) + timedelta(minutes=jwt_settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload_data = {
         "email": user["email"],
         "exp": expire,
         "user_id": str(user["_id"]),
+        "role": "admin" if is_admin else user_role,
         "is_admin": is_admin
     }
 

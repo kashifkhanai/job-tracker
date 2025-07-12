@@ -1,28 +1,46 @@
+
 from pydantic import BaseModel, EmailStr, Field, field_validator,model_validator
 from typing import Annotated, Optional
 from enum import Enum
 from datetime import datetime
+from pydantic import ConfigDict
 import re
 
-# --- Enums ---
-class JobStatus(str, Enum):
-    applied = "applied"
-    interviewing = "interviewing"
-    offered = "offered"
-    rejected = "rejected"
 
-class JobType(str, Enum):
-    developer = "developer"
-    designer = "designer"
-    manager = "manager"
-    data_analyst = "data_analyst"
-    qa_engineer = "qa_engineer"
+class UserRole(str, Enum):
+    JOB_SEEKER = "job_seeker"
+    EMPLOYER = "employer"
+    ADMIN = 'admin'
+    
+
+class JobTitle(str, Enum):
+    DEVELOPER = "Developer"
+    DESIGNER = "Designer"
+    MANAGER = "Manager"
+    DATA_SCIENTIST = "Data Scientist"
+    QA_ENGINEER = "QA Engineer"
+
+class JobLocation(str, Enum):
+    REMOTE = "Remote"
+    ONSITE = "Onsite"
+    HYBRID = "Hybrid"
+
+class JobPostModel(BaseModel):
+    title: JobTitle = Field(..., description="Select the job title", examples=["Developer"])
+    location: JobLocation = Field(..., description="Select the job location", examples=["Remote"])
+    description: Optional[str] = Field(None, description="Job description")
+    company_name: Optional[str] = Field(None, description="Company name")
+    salary: Optional[str] = Field(None, description="Salary range")
+    posted_at: datetime = Field(default_factory=datetime.now, description="Date posted")
+    
+
+
 
 # --- Regex for password ---
 PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
 
-# --- User Register Schema ---
-class UserRegister(BaseModel):
+# --- User Register Schema ---   
+class User(BaseModel):
     firstname: Annotated[str, Field(..., description="First name is required")]
     lastname: Optional[str] = Field(default=None, description="Last name is optional")
     username: Annotated[
@@ -33,7 +51,8 @@ class UserRegister(BaseModel):
         Optional[str],
         Field(default=None, min_length=10, max_length=16, pattern=r"^\+?\d{10,15}$", description="Valid phone number")
     ]
-    jobtitle: JobType
+    role: UserRole = Field(..., description="User role: 'job_seeker' or 'employer'", examples=["job_seeker", "employer"])
+    is_admin: Optional[bool] = False
     email: EmailStr
     password: str
 
@@ -47,6 +66,27 @@ class UserRegister(BaseModel):
                 "lowercase, number, and special character."
             )
         return value
+    
+class UserRegisterResponse(BaseModel):
+    message: str
+    user_id: str
+
+
+class AddAdminResponse(BaseModel):
+    message: str
+    admin_id: str
+ 
+
+class GetUser(BaseModel):
+    model_config = ConfigDict(
+        extra="allow"
+    )
+    firstname: str
+    lastname: str
+    username: str
+    phone: str
+    role: str
+    email: EmailStr
 
 # --- User Login Schema ---
 class UserLogin(BaseModel):
