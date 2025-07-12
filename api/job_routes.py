@@ -31,3 +31,22 @@ async def get_all_jobs(
 ):
     jobs = await db["jobs"].find({}, {"_id": 0}).to_list(length=100)
     return jobs
+
+#Get Unique Job Titles
+@router.get("/titles", response_model=list[str])
+async def get_unique_job_titles(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    seeker=Depends(require_role("job_seeker"))
+):
+    titles = await db["jobs"].distinct("title")  # MongoDB distinct titles
+    return titles
+
+#Get Jobs by Selected Title
+@router.get("/filter-by-title", response_model=list[JobResponseModel])
+async def filter_jobs_by_title(
+    title: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    seeker=Depends(require_role("job_seeker"))
+):
+    jobs = await db["jobs"].find({"title": title}, {"_id": 0}).to_list(length=100)
+    return jobs

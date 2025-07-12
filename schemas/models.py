@@ -94,23 +94,16 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     
-
-class JobTitle(str, Enum):
-    DEVELOPER = "Developer"
-    DESIGNER = "Designer"
-    MANAGER = "Manager"
-    DATA_SCIENTIST = "Data Scientist"
-    QA_ENGINEER = "QA Engineer"
+    
+################### Job Models ######################################################################
 
 class JobLocation(str, Enum):
     REMOTE = "Remote"
     ONSITE = "Onsite"
     HYBRID = "Hybrid"
     
-################### Job Models ######################################################################
-
 class JobPostModel(BaseModel):
-    title: JobTitle = Field(..., description="Select the job title", examples=["Developer"])
+    title: str = Field(..., description="Select the job title", examples=["Developer"])
     location: JobLocation = Field(..., description="Select the job location", examples=["Remote"])
     description: Optional[str] = Field(None, description="Job description")
     company_name: Optional[str] = Field(None, description="Company name")
@@ -123,7 +116,7 @@ class JobPostResponse(BaseModel):
     job_id: str
     
 class JobResponseModel(BaseModel):
-    title: JobTitle
+    title: str
     location: JobLocation
     description: Optional[str] = None
     company_name: Optional[str] = None
