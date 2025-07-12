@@ -24,7 +24,7 @@ async def post_job(
 
 # JOB SEEKER: View all jobs
 
-@router.get("/all",response_model=JobResponseModel)
+@router.get("/all",response_model=list[JobResponseModel])
 async def get_all_jobs(
     db: AsyncIOMotorDatabase = Depends(get_db),
     seeker = Depends(require_role("job_seeker"))
@@ -41,4 +41,12 @@ async def get_unique_job_titles(
     titles = await db["jobs"].distinct("title")  # MongoDB distinct titles
     return titles
 
-
+#Get Jobs by Selected Title
+@router.get("/filter-by-title", response_model=list[JobResponseModel])
+async def filter_jobs_by_title(
+    title: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    seeker=Depends(require_role("job_seeker"))
+):
+    jobs = await db["jobs"].find({"title": title}, {"_id": 0}).to_list(length=100)
+    return jobs
