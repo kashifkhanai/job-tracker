@@ -16,7 +16,7 @@ router = APIRouter(prefix="/auth")
 @router.post("/register",response_model=UserRegisterResponse)
 async def register_user(payload: User, db:AsyncIOMotorDatabase=Depends(get_db)):
     
-    # 🔍 Check if user exists by email or username
+    # Check if user exists by email or username
     existing_user = await db["users"].find_one({"$or": [{"email": payload.email},{"username": payload.username}]})
     if existing_user:
         if existing_user.get("email") == payload.email:

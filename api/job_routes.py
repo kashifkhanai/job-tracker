@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends
 from core.role_check import require_role
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from utils.db_getter import get_db
-from schemas.models import JobPostModel
+from schemas.models import JobPostModel,JobPostResponse,JobResponseModel
 
 router = APIRouter(prefix="/jobs")
 
 #EMPLOYER: Post a Job
 
-@router.post("/post", status_code=201)
+@router.post("/post", status_code=201,response_model=JobPostResponse)
 async def post_job(
     job: JobPostModel,
     db: AsyncIOMotorDatabase = Depends(get_db),
@@ -24,7 +24,7 @@ async def post_job(
 
 # JOB SEEKER: View all jobs
 
-@router.get("/all")
+@router.get("/all",response_model=JobResponseModel)
 async def get_all_jobs(
     db: AsyncIOMotorDatabase = Depends(get_db),
     seeker = Depends(require_role("job_seeker"))

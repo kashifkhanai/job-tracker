@@ -3,7 +3,7 @@ from bson import ObjectId
 from utils.db_getter import get_db
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from core.admincheck import admin_required
-from schemas.models import User, GetUser,AddAdminResponse
+from schemas.models import User, GetUser,AddAdminResponse,DeleteUserResponse
 from utils.utils import hash_password
 
 router = APIRouter(prefix="/admin")
@@ -21,7 +21,7 @@ async def get_all_users(
     return users
 
 # Delete a user by ID
-@router.delete("/user/{user_id}")
+@router.delete("/user/{user_id}",response_model=DeleteUserResponse)
 async def delete_user(
     user_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),

@@ -6,36 +6,14 @@ from datetime import datetime
 from pydantic import ConfigDict
 import re
 
+######################## Auth Models ####################################################################
 
 class UserRole(str, Enum):
     JOB_SEEKER = "job_seeker"
     EMPLOYER = "employer"
     ADMIN = 'admin'
     
-
-class JobTitle(str, Enum):
-    DEVELOPER = "Developer"
-    DESIGNER = "Designer"
-    MANAGER = "Manager"
-    DATA_SCIENTIST = "Data Scientist"
-    QA_ENGINEER = "QA Engineer"
-
-class JobLocation(str, Enum):
-    REMOTE = "Remote"
-    ONSITE = "Onsite"
-    HYBRID = "Hybrid"
-
-class JobPostModel(BaseModel):
-    title: JobTitle = Field(..., description="Select the job title", examples=["Developer"])
-    location: JobLocation = Field(..., description="Select the job location", examples=["Remote"])
-    description: Optional[str] = Field(None, description="Job description")
-    company_name: Optional[str] = Field(None, description="Company name")
-    salary: Optional[str] = Field(None, description="Salary range")
-    posted_at: datetime = Field(default_factory=datetime.now, description="Date posted")
     
-
-
-
 # --- Regex for password ---
 PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
 
@@ -70,7 +48,22 @@ class User(BaseModel):
 class UserRegisterResponse(BaseModel):
     message: str
     user_id: str
+    
+    
+# --- User Login Schema ---
+class UserLogin(BaseModel):
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    password: str
 
+    @model_validator(mode="after")
+    def check_email_or_username(self) -> 'UserLogin':
+        if not self.email and not self.username:
+            raise ValueError("Either email or username must be provided")
+        return self
+    
+    
+################## Admin models ####################################################################################
 
 class AddAdminResponse(BaseModel):
     message: str
@@ -88,20 +81,11 @@ class GetUser(BaseModel):
     role: str
     email: EmailStr
 
-# --- User Login Schema ---
-class UserLogin(BaseModel):
-    email: Optional[EmailStr] = None
-    username: Optional[str] = None
-    password: str
-
-    @model_validator(mode="after")
-    def check_email_or_username(self) -> 'UserLogin':
-        if not self.email and not self.username:
-            raise ValueError("Either email or username must be provided")
-        return self
+class DeleteUserResponse(BaseModel):
+    message: str
 
 
-################## Token ############################
+################## Token ################################################################
 class TokenData(BaseModel):
     email: str
     exp: datetime | None = None
@@ -109,3 +93,42 @@ class TokenData(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    
+
+class JobTitle(str, Enum):
+    DEVELOPER = "Developer"
+    DESIGNER = "Designer"
+    MANAGER = "Manager"
+    DATA_SCIENTIST = "Data Scientist"
+    QA_ENGINEER = "QA Engineer"
+
+class JobLocation(str, Enum):
+    REMOTE = "Remote"
+    ONSITE = "Onsite"
+    HYBRID = "Hybrid"
+    
+################### Job Models ######################################################################
+
+class JobPostModel(BaseModel):
+    title: JobTitle = Field(..., description="Select the job title", examples=["Developer"])
+    location: JobLocation = Field(..., description="Select the job location", examples=["Remote"])
+    description: Optional[str] = Field(None, description="Job description")
+    company_name: Optional[str] = Field(None, description="Company name")
+    salary: Optional[str] = Field(None, description="Salary range")
+    posted_at: datetime = Field(default_factory=datetime.now, description="Date posted")
+    
+    
+class JobPostResponse(BaseModel):
+    message: str
+    job_id: str
+    
+class JobResponseModel(BaseModel):
+    title: JobTitle
+    location: JobLocation
+    description: Optional[str] = None
+    company_name: Optional[str] = None
+    salary: Optional[str] = None
+    posted_at: datetime
+    employer_id: str
+    employer_name: str
+    employer_email: EmailStr
