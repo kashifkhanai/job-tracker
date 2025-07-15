@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Job Portal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-text: #1e293b;
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #1e293b;
+      --color-text: #f8fafc;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    #errorMsg {
+      display: none;
+      margin: 1rem auto;
+      padding: 10px;
+      color: #a94442;
+      background: #f2dede;
+      border: 1px solid #ebccd1;
+      border-radius: 4px;
+      text-align: center;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <!-- Theme toggle button -->
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+
+  <!-- Global Error Message -->
+  <div id="errorMsg"></div>
+
+  <!-- Navigation -->
+  <nav class="flex flex-center gap-sm" aria-label="Main Navigation">
+    <a href="login.html" class="btn btn-primary">Login</a>
+    <a href="register.html" class="btn">Register</a>
+  </nav>
+
+  <!-- Main Login Form -->
+  <main>
+    <section class="card">
+      <h2 class="text-center">Login to Job Portal</h2>
+      <form id="loginForm" class="flex flex-col gap-sm" aria-label="Login Form">
+        <label for="emailOrUsername">Email or Username:</label>
+        <input type="text" id="emailOrUsername" name="emailOrUsername" required placeholder="Enter email or username" />
+
+        <label for="password">Password:</label>
+        <div style="position:relative;">
+          <input type="password" id="password" name="password" required placeholder="Enter password" />
+          <button type="button" id="togglePassword" title="Toggle Password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);">👁️</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-sm">Login</button>
+      </form>
+
+      <p class="mt-sm">Don't have an account? <a href="register.html">Register here</a></p>
+    </section>
+  </main>
+
+  <footer class="text-center p-sm">&copy; 2025 Job Portal</footer>
+
+  <script>
+    // Show/Hide password
+    document.getElementById("togglePassword").addEventListener("click", function () {
+      const pwd = document.getElementById("password");
+      pwd.type = pwd.type === "password" ? "text" : "password";
+      this.textContent = pwd.type === "password" ? "👁️" : "🙈";
+    });
+
+    // Theme Management
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function applySavedTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.body.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    applySavedTheme();
+
+    // Error display
+    function showError(msg) {
+      const box = document.getElementById("errorMsg");
+      box.textContent = msg;
+      box.style.display = "block";
+      setTimeout(() => (box.style.display = "none"), 5000);
+    }
+
+    // Login Handler
+    document.getElementById("loginForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const input = document.getElementById("emailOrUsername").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!input || !password) return showError("Both fields are required.");
+
+      const body = { password };
+      if (input.includes("@")) body.email = input;
+      else body.username = input;
+
+      try {
+        const res = await fetch("http://localhost:8000/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Login failed");
+
+        localStorage.setItem("access_token", data.access_token);
+
+        const decoded = JSON.parse(atob(data.access_token.split(".")[1]));
+        const role = decoded.role;
+
+        if (role === "admin") window.location.href = "admin.html";
+        else if (role === "employer") window.location.href = "employer_dashboard.html";
+        else window.location.href = "job_seeker_dashboard.html";
+
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+  </script>
+</body>
+</html>

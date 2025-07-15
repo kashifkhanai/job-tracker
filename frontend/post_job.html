@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post Job - Employer</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-text: #1e293b;
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #1e293b;
+      --color-text: #f8fafc;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    #message, #error {
+      text-align: center;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    #message { color: green; }
+    #error { color: red; }
+  </style>
+</head>
+<body data-theme="light">
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+
+  <nav class="flex flex-center gap-sm" aria-label="Main Navigation">
+    <a href="employer_dashboard.html" class="btn">Employer Dashboard</a>
+    <button onclick="logout()" class="btn btn-danger">Logout</button>
+  </nav>
+
+  <main>
+    <section class="card">
+      <h2 class="text-center">Post a New Job</h2>
+      <form id="jobForm" class="flex flex-col gap-sm" aria-label="Post Job Form">
+        <label for="title">Job Title:</label>
+        <input type="text" id="title" name="title" required placeholder="Enter job title" />
+
+        <label for="location">Location:</label>
+        <select id="location" name="location" required>
+          <option value="" disabled selected>Select location</option>
+          <option value="Remote">Remote</option>
+          <option value="Onsite">Onsite</option>
+          <option value="Hybrid">Hybrid</option>
+        </select>
+
+        <label for="company_name">Company Name:</label>
+        <input type="text" id="company_name" name="company_name" placeholder="Enter company name" />
+
+        <label for="salary">Salary:</label>
+        <input type="number" id="salary" name="salary" placeholder="Enter salary" min="0" />
+
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="4" placeholder="Describe the job"></textarea>
+
+        <button type="submit" class="btn btn-primary mt-sm">Post Job</button>
+      </form>
+    </section>
+  </main>
+
+  <p id="message"></p>
+  <p id="error"></p>
+
+  <footer class="text-center p-sm">&copy; 2025 Job Portal</footer>
+
+  <script>
+    // Theme Logic
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function applySavedTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.body.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    applySavedTheme();
+
+    // Auth Check
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("You must be logged in as employer");
+      window.location.href = "login.html";
+    }
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.role !== "employer") {
+      alert("Only employers can access this page.");
+      window.location.href = "unauthorized.html";
+    }
+
+    // Logout
+    function logout() {
+      localStorage.removeItem("access_token");
+      window.location.href = "login.html";
+    }
+
+    // Form Submit Handler
+    document.getElementById("jobForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const messageEl = document.getElementById("message");
+      const errorEl = document.getElementById("error");
+      messageEl.textContent = "";
+      errorEl.textContent = "";
+
+      const jobData = {
+        title: document.getElementById("title").value.trim(),
+        location: document.getElementById("location").value,
+        description: document.getElementById("description").value.trim(),
+        company_name: document.getElementById("company_name").value.trim(),
+        salary: document.getElementById("salary").value.trim()
+      };
+
+      // Basic validation
+      if (!jobData.title || !jobData.location || !jobData.description || !jobData.company_name || !jobData.salary) {
+        errorEl.textContent = "Please fill in all required fields.";
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:8000/jobs/post", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(jobData)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.detail || "Job post failed");
+
+        messageEl.textContent = data.message + " (Job ID: " + data.job_id + ")";
+        document.getElementById("jobForm").reset();
+      } catch (err) {
+        errorEl.textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>

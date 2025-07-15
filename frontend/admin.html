@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-text: #1e293b;
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #1e293b;
+      --color-text: #f8fafc;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    #errorMsg {
+      color: red;
+      margin: 10px auto;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <!-- Dark/Light Mode Toggle Button -->
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+
+  <div id="errorMsg"></div>
+
+  <nav class="flex flex-center gap-sm" aria-label="Main Navigation">
+    <a href="admin_users.html" class="btn">All Users</a>
+    <a href="add_admin.html" class="btn btn-primary">Add Admin</a>
+    <button onclick="logout()" class="btn btn-danger">Logout</button>
+  </nav>
+
+  <main>
+    <section class="card">
+      <h2 class="text-center">Welcome Admin</h2>
+    </section>
+  </main>
+
+  <footer class="text-center p-sm">&copy; 2025 Job Portal</footer>
+
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function applySavedTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.body.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    applySavedTheme();
+
+    // Show error in top box
+    function showError(message) {
+      const errorBox = document.getElementById("errorMsg");
+      errorBox.textContent = message;
+      errorBox.style.display = "block";
+      setTimeout(() => errorBox.style.display = "none", 5000);
+    }
+
+    // Authentication check
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("You must be logged in as Admin.");
+      window.location.href = "login.html";
+    } else {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.role !== "admin") {
+          alert("Access denied! Admin only.");
+          window.location.href = "unauthorized.html";
+        }
+      } catch (err) {
+        showError("Invalid token");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("access_token");
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>

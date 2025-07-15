@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - Job Portal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-text: #1e293b;
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #1e293b;
+      --color-text: #f8fafc;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    #error, #success {
+      text-align: center;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    #error { color: red; }
+    #success { color: green; }
+  </style>
+</head>
+<body data-theme="light">
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+
+  <nav class="flex flex-center gap-sm" aria-label="Main Navigation">
+    <a href="login.html" class="btn">Login</a>
+    <a href="register.html" class="btn btn-primary">Register</a>
+  </nav>
+
+  <main>
+    <section class="card">
+      <h2 class="text-center">User Registration</h2>
+      <form id="registerForm" class="flex flex-col gap-sm" aria-label="Registration Form">
+        <label for="firstname">First Name:</label>
+        <input type="text" id="firstname" name="firstname" required placeholder="Enter your first name" />
+
+        <label for="lastname">Last Name:</label>
+        <input type="text" id="lastname" name="lastname" placeholder="Enter your last name" />
+
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required placeholder="Choose a username" />
+
+        <label for="phone">Phone:</label>
+        <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" pattern="[0-9]{10}" />
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required placeholder="Enter your email" />
+
+        <label for="password">Password:</label>
+        <div style="position:relative;">
+          <input type="password" id="password" name="password" required placeholder="Create a password" />
+          <button type="button" id="togglePassword" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);">👁️</button>
+        </div>
+
+        <label for="role">Role:</label>
+        <select id="role" name="role" required>
+          <option value="" disabled selected>Select your role</option>
+          <option value="job_seeker">Job Seeker</option>
+          <option value="employer">Employer</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary mt-sm">Register</button>
+      </form>
+
+      <p id="error"></p>
+      <p id="success"></p>
+
+      <p class="text-center mt-sm">Already have an account? <a href="login.html">Login here</a></p>
+    </section>
+  </main>
+
+  <footer class="text-center p-sm">&copy; 2025 Job Portal</footer>
+
+  <script>
+    // Theme Logic
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function applySavedTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.body.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    applySavedTheme();
+
+    // Show/Hide Password Toggle
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const pwd = document.getElementById('password');
+      pwd.type = pwd.type === 'password' ? 'text' : 'password';
+      this.textContent = pwd.type === 'password' ? '👁️' : '🙈';
+    });
+
+    // Form Submit
+    document.getElementById("registerForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const error = document.getElementById("error");
+      const success = document.getElementById("success");
+      error.textContent = "";
+      success.textContent = "";
+
+      const firstname = document.getElementById("firstname").value.trim();
+      const lastname = document.getElementById("lastname").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const role = document.getElementById("role").value;
+
+      if (!firstname || !username || !email || !password || !role) {
+        error.textContent = "Please fill in all required fields.";
+        return;
+      }
+
+      if (!email.match(/^\S+@\S+\.\S+$/)) {
+        error.textContent = "Please enter a valid email address.";
+        return;
+      }
+
+      if (phone && !phone.match(/^[0-9]{10}$/)) {
+        error.textContent = "Phone number must be 10 digits.";
+        return;
+      }
+
+      const user = { firstname, lastname, username, phone, email, password, role };
+
+      try {
+        const res = await fetch("http://localhost:8000/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(user)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.detail || "Registration failed");
+
+        success.textContent = "Registration successful! Redirecting to login...";
+        document.getElementById("registerForm").reset();
+
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 2000);
+      } catch (err) {
+        error.textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>

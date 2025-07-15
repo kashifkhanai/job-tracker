@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employer Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-text: #1e293b;
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #1e293b;
+      --color-text: #f8fafc;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    #errorMsg {
+      color: red;
+      text-align: center;
+      font-weight: bold;
+      margin: 10px auto;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+
+  <!-- Error Display -->
+  <div id="errorMsg"></div>
+
+  <nav class="flex flex-center gap-sm" aria-label="Main Navigation">
+    <a href="post_job.html" class="btn btn-primary">Post Job</a>
+    <button onclick="logout()" class="btn btn-danger">Logout</button>
+  </nav>
+
+  <main>
+    <section class="card">
+      <h2 class="text-center">Welcome, Employer!</h2>
+      <p>You can now post jobs and manage them.</p>
+    </section>
+  </main>
+
+  <footer class="text-center p-sm">&copy; 2025 Job Portal</footer>
+
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function applySavedTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.body.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    applySavedTheme();
+
+    // Error Message Box
+    function showError(msg) {
+      const errorBox = document.getElementById("errorMsg");
+      errorBox.textContent = msg;
+      errorBox.style.display = "block";
+      setTimeout(() => errorBox.style.display = "none", 4000);
+    }
+
+    // Authentication & Role Check
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("You must be logged in as employer.");
+      window.location.href = "login.html";
+    } else {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.role !== "employer") {
+          alert("Unauthorized access. Redirecting...");
+          window.location.href = "unauthorized.html";
+        }
+      } catch (err) {
+        showError("Invalid or corrupted token.");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("access_token");
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>

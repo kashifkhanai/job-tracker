@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Job Seeker Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-text: #1e293b;
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #1e293b;
+      --color-text: #f8fafc;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    #errorMsg {
+      color: red;
+      text-align: center;
+      font-weight: bold;
+      margin: 10px auto;
+    }
+    .job-card {
+      background: #f5f5f5;
+      margin: 1rem 0;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+    [data-theme="dark"] .job-card {
+      background-color: #2a2a2a;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+
+  <!-- Navigation -->
+  <nav class="flex flex-center gap-sm" aria-label="Main Navigation">
+    <h1 class="text-center">Job Portal</h1>
+    <button onclick="logout()" class="btn btn-danger">Logout</button>
+  </nav>
+
+  <!-- Error Message Display -->
+  <div id="errorMsg"></div>
+
+  <!-- Main Content -->
+  <main>
+    <section class="card">
+      <h2 class="text-center">Welcome, Job Seeker!</h2>
+      <p class="text-center">Explore job opportunities below. Use filter if desired.</p>
+
+      <div class="filter-section text-center">
+        <label for="titleFilter">Filter by Job Title:</label>
+        <select id="titleFilter">
+          <option value="">-- All Jobs --</option>
+        </select>
+      </div>
+    </section>
+
+    <section id="jobsContainer" class="job-listings-container"></section>
+  </main>
+
+  <footer class="text-center p-sm">&copy; 2025 Job Portal</footer>
+
+  <script>
+    // Theme Initialization
+    function applySavedTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.body.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Show Error Function
+    function showError(msg) {
+      const errorBox = document.getElementById("errorMsg");
+      errorBox.textContent = msg;
+      errorBox.style.display = "block";
+      setTimeout(() => errorBox.style.display = "none", 4000);
+    }
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("You must be logged in");
+      window.location.href = "login.html";
+    } else {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.role !== "job_seeker") {
+          alert("Only job seekers can access this page.");
+          window.location.href = "unauthorized.html";
+        }
+      } catch (err) {
+        showError("Invalid or corrupted token.");
+      }
+    }
+
+    const titleSelect = document.getElementById("titleFilter");
+    const container = document.getElementById("jobsContainer");
+
+    // Fetch all jobs
+    async function fetchAllJobs() {
+      try {
+        const res = await fetch("http://localhost:8000/jobs/all", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const jobs = await res.json();
+        if (!res.ok) throw new Error(jobs.detail || "Failed to load jobs");
+        renderJobs(jobs);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    // Fetch job titles
+    async function fetchJobTitles() {
+      try {
+        const res = await fetch("http://localhost:8000/jobs/titles", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const titles = await res.json();
+        titles.forEach(title => {
+          const option = document.createElement("option");
+          option.value = title;
+          option.textContent = title;
+          titleSelect.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Could not load job titles.");
+      }
+    }
+
+    // Render job cards
+    function renderJobs(jobs) {
+      container.innerHTML = "";
+      if (!jobs.length) {
+        container.innerHTML = "<p class='text-center'>No jobs available.</p>";
+        return;
+      }
+
+      jobs.forEach(job => {
+        const jobEl = document.createElement("div");
+        jobEl.className = "job-card";
+        jobEl.innerHTML = `
+          <h3>${job.title}</h3>
+          <p><strong>Company:</strong> ${job.company_name || "N/A"}</p>
+          <p><strong>Location:</strong> ${job.location}</p>
+          <p><strong>Salary:</strong> ${job.salary || "N/A"}</p>
+          <p><strong>Posted:</strong> ${new Date(job.posted_at).toLocaleDateString()}</p>
+          <p>${job.description || ""}</p>
+        `;
+        container.appendChild(jobEl);
+      });
+    }
+
+    // Filter by selected title
+    titleSelect.addEventListener("change", async () => {
+      const selected = titleSelect.value;
+      if (!selected) return fetchAllJobs();
+
+      try {
+        const res = await fetch(`http://localhost:8000/jobs/filter-by-title?title=${encodeURIComponent(selected)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const jobs = await res.json();
+        if (!res.ok) throw new Error(jobs.detail || "Failed to fetch filtered jobs");
+        renderJobs(jobs);
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+
+    function logout() {
+      localStorage.removeItem("access_token");
+      window.location.href = "login.html";
+    }
+
+    // Init on load
+    fetchJobTitles();
+    fetchAllJobs();
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    applySavedTheme();
+  </script>
+</body>
+</html>
