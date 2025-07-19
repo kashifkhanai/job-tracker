@@ -157,6 +157,6 @@ Made with  by **Muhammad Kashif**
 
 ## 📄 License
 
-This project is licensed under the [MIT License](./).
+This project is licensed under the [MIT License](./LICENSE).
 
 ---
